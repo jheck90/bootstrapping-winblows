@@ -31,6 +31,7 @@ let
     vim
     wget
     zip
+    keybase
   ];
 
   stable-packages = with  pkgs; [
