@@ -533,11 +533,6 @@ in
 
         eval "$(direnv hook zsh)"
 
-        export AWS_EXECUTION_ENV="APN/1.0 HashiCorp/1.0 Terraform/1.5.5 aws-sdk-go/1.44.256 (go1.20.7; linux; amd64)"
-
-        export NOMAD_ADDR=https://nomad.ops.gofigg.net
-        export NOMAD_TOKEN=a1a015f3-1e4c-2769-618a-514cb7481f67
-
         launch_test_ec2_instance() {
 
           local suicide_time=${1:-55}
