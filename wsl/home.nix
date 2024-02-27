@@ -2,6 +2,7 @@
 , pkgs
 , username
 , nix-index-database
+, nix-vscode-extensions
 , ...
 }:
 let
@@ -35,8 +36,6 @@ let
   ];
 
   stable-packages = with  pkgs; [
-    # daemons
-    openvscode-server
 
     # key tools
     gh
@@ -50,12 +49,14 @@ let
     pipx
     pwgen
     chezmoi
-    terraform-docs
     packer
     rclone
     drone-cli
     nomad
     pre-commit
+    nomad
+    terraform-docs
+    terraform
     tfswitch
     gnumake
     wslu
@@ -68,7 +69,7 @@ let
     python3
     typescript
 
-    # rust stuff
+    # rust
     cargo-cache
     cargo-expand
 
@@ -109,8 +110,47 @@ let
     sqlfluff
     tflint
     hclfmt
-
   ];
+
+  extensionsList = with nix-vscode-extensions.extensions.x86_64-linux.vscode-marketplace; [
+    # Golang
+    golang.go
+
+    # Terrafom
+    hashicorp.terraform
+    hashicorp.hcl
+
+    # Python
+    ms-python.python
+
+    # Java
+    redhat.java
+    vscjava.vscode-lombok
+
+    # Nix
+    jnoortheen.nix-ide
+
+    # Generic language parsers / prettifiers
+    esbenp.prettier-vscode
+    redhat.vscode-yaml
+    jkillian.custom-local-formatters
+
+    # Generic tools
+    eamodio.gitlens
+    jebbs.plantuml
+
+    # DB stuff
+    mtxr.sqltools
+    mtxr.sqltools-driver-pg
+
+    # Eye candy
+    pkief.material-icon-theme
+    zhuangtongfa.material-theme
+
+    # Misc
+    jkillian.custom-local-formatters
+  ];
+
 in
 {
   imports = [
@@ -118,17 +158,28 @@ in
   ];
 
   home = {
-    username = "${username}";
-    homeDirectory = "/home/${username}";
+    username = "${ username}";
+    homeDirectory = "/home/${ username}";
     stateVersion = "22.11";
-    sessionVariables.EDITOR = "vim";
-    sessionVariables.SHELL = "/etc/profiles/per-user/${username}/bin/zsh";
-    packages = stable-packages ++ unstable-packages;
+    sessionVariables. EDITOR = "vim";
+    sessionVariables. SHELL = "/etc/profiles/per-user/${username}/bin/zsh";
+    packages = stable-packages ++ unstable-packages ++ extensionsList ++ [
+      (pkgs.callPackage ../modules/codegpt.nix { })
+      (pkgs.callPackage ../modules/go-markdown2confluence.nix { })
+    ];
   };
 
   home.file = {
-    Downloads.source = config.lib.file.mkOutOfStoreSymlink "/mnt/c/Users/${username}/Documents/workspaces";
-    Downloads.target = "workspaces";
+    workspaces.source = config.lib.file.mkOutOfStoreSymlink "/mnt/c/Users/${username}/Documents/workspaces";
+    workspaces.target = "workspaces";
+  };
+
+  services.gpg-agent = {
+    enable = true;
+    defaultCacheTtl = 3600;
+    maxCacheTtl = 3600;
+    pinentryFlavor = "tty";
+    enableScDaemon = false;
   };
 
   programs = {
@@ -136,6 +187,8 @@ in
     nix-index.enable = true;
     nix-index.enableZshIntegration = true;
     nix-index-database.comma.enable = true;
+
+    gpg.enable = true;
 
     fzf.enable = true;
     fzf.enableZshIntegration = true;
@@ -145,6 +198,81 @@ in
     zoxide.enableZshIntegration = true;
     broot.enable = true;
     broot.enableZshIntegration = true;
+
+    vscode = {
+      enable = true;
+      extensions = extensionsList;
+      enableUpdateCheck = true;
+      enableExtensionUpdateCheck = true;
+
+      keybindings = [
+        {
+          key = "ctrl+q";
+          command = "editor.action.commentLine";
+          when = "editorTextFocus && !editorReadonly";
+        }
+        {
+          key = "ctrl+d";
+          command = "editor.action.copyLinesDownAction";
+          when = "editorTextFocus && !editorReadonly";
+        }
+      ];
+
+      userSettings = {
+        "workbench.colorTheme" = "Visual Studio Dark";
+        "workbench.iconTheme" = "material-icon-theme";
+        "workbench.startupEditor" = "newUntitledFile";
+        "editor.renderWhitespace" = "all";
+        "editor.formatOnSave" = true;
+        "editor.tabSize" = 2;
+        "extensions.ignoreRecommendations" = true;
+        "extensions.autoCheckUpdates" = false;
+        "explorer.confirmDelete" = false;
+        "extensions.autoUpdate" = false;
+        "files.watcherExclude" = {
+          "**/vendor/**" = true;
+          "**/.config/**" = true;
+        };
+        "gitlens.mode.statusBar.enabled" = false;
+        "gitlens.hovers.currentLine.over" = "line";
+        "explorer.confirmDragAndDrop" = false;
+        "redhat.telemetry.enabled" = false;
+        "telemetry.telemetryLevel" = "off";
+        "files.associations" = {
+          "*.hcl" = "hcl";
+          "*.nomad.hcl" = "hcl";
+          "*.pkr.hcl" = "hcl";
+        };
+        "customLocalFormatters.formatters" = [
+          {
+            "command" = "${pkgs.terraform}/bin/terraform fmt -";
+            "languages" = [
+              "terraform"
+            ];
+          }
+          {
+            "command" = "${pkgs.nomad}/bin/nomad fmt -";
+            "languages" = [
+              "nomad"
+            ];
+          }
+          {
+            "command" = "${pkgs.hclfmt}/bin/hclfmt";
+            "languages" = [
+              "hcl"
+            ];
+          }
+        ];
+        "nix.enableLanguageServer" = true;
+        "nix.serverPath" = "nil";
+        "nix.formatterPath" = "nixpkgs-fmt";
+        "nix.serverSettings" = {
+          "nil" = {
+            "formatting" = { "command" = [ "nixpkgs-fmt" ]; };
+          };
+        };
+      };
+    };
 
     direnv.enable = true;
     direnv.enableZshIntegration = true;
