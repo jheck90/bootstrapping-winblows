@@ -6,6 +6,7 @@
 
   inputs.home-manager.url = "github:nix-community/home-manager/release-23.11";
   inputs.home-manager.inputs.nixpkgs.follows = "nixpkgs";
+  inputs.nix-vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
 
   inputs.nur.url = "github:nix-community/NUR";
 
@@ -46,7 +47,7 @@
       };
 
       argDefaults = {
-        inherit inputs self nix-index-database;
+        inherit inputs self nix-index-database nix-vscode-extensions;
         channels = {
           inherit nixpkgs nixpkgs-unstable;
         };
